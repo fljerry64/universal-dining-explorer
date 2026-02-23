@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Universal Orlando Dining Explorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <h1>Universal Orlando Dining Explorer</h1>
+  <button id="darkToggle">🌙</button>
+</header>
+
+<div class="filters">
+  <input type="text" id="search" placeholder="Search food or restaurant...">
+
+  <select id="parkFilter">
+    <option value="">All Parks</option>
+    <option value="Universal Studios Florida">Universal Studios Florida</option>
+    <option value="Islands of Adventure">Islands of Adventure</option>
+    <option value="Epic Universe">Epic Universe</option>
+  </select>
+</div>
+
+<div id="restaurantList"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
