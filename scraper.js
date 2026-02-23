@@ -1,49 +1,56 @@
 const fs = require('fs');
 const puppeteer = require('puppeteer');
 
-// Path to the URLs file
 const urlsFile = 'dining_urls.txt';
+const outputFile = 'menu_data.json';
 
-// Check if the file exists; if not, create a default one
+// Step 1: Create default URLs file if it doesn't exist
 if (!fs.existsSync(urlsFile)) {
   console.log('Created default dining_urls.txt');
   fs.writeFileSync(urlsFile, 'https://example.com/menu1\nhttps://example.com/menu2\n');
 }
 
-// Read the URLs
+// Step 2: Read URLs from the file
 const urls = fs.readFileSync(urlsFile, 'utf-8')
   .split('\n')
   .map(line => line.trim())
   .filter(line => line.length > 0);
-
-console.log(`Loaded ${urls.length} URL${urls.length !== 1 ? 's' : ''}:`);
-urls.forEach((url, i) => console.log(`${i + 1}: ${url}`));
 
 (async () => {
   console.log('Launching Puppeteer...');
   const browser = await puppeteer.launch({
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
-  
   const page = await browser.newPage();
 
-  for (let i = 0; i < urls.length; i++) {
-    const url = urls[i];
+  const allMenus = [];
+
+  for (let url of urls) {
     try {
       console.log(`Visiting ${url} ...`);
       await page.goto(url, { waitUntil: 'networkidle2' });
-      
-      // Example: grab the page title (replace this with your scraping logic)
-      const title = await page.title();
-      console.log(`Title of page ${i + 1}: ${title}`);
-      
-      // TODO: Add code here to extract menu items and save them if needed
+
+      // Example scraping logic
+      const menuItems = await page.evaluate(() => {
+        const items = [];
+        // Update these selectors to match your menu page
+        document.querySelectorAll('.menu-item').forEach(el => {
+          const name = el.querySelector('.item-name')?.innerText || '';
+          const price = el.querySelector('.item-price')?.innerText || '';
+          if (name) items.push({ item: name, price });
+        });
+        return items;
+      });
+
+      allMenus.push({ url, menu: menuItems });
+      console.log(`Scraped ${menuItems.length} items from ${url}`);
 
     } catch (err) {
-      console.error(`Error visiting ${url}:`, err);
+      console.error(`Error scraping ${url}:`, err);
     }
   }
 
+  fs.writeFileSync(outputFile, JSON.stringify(allMenus, null, 2));
   await browser.close();
-  console.log('Scraping completed.');
+  console.log(`Scraping completed. Saved data to ${outputFile}`);
 })();
