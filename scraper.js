@@ -1,82 +1,49 @@
-const fs = require('fs-extra');
+// scraper.js
+const fs = require('fs');
+const path = require('path');
 const puppeteer = require('puppeteer');
 
-const urls = fs.readFileSync('dining_urls.txt', 'utf-8')
-  .split('\n')
-  .filter(Boolean);
+// --- Step 1: Setup paths for data folder and URLs file ---
+const dataFolder = path.join(__dirname, 'data');
+const urlsFilePath = path.join(dataFolder, 'dining_urls.txt');
 
+// --- Step 2: Ensure the data folder exists ---
+if (!fs.existsSync(dataFolder)) fs.mkdirSync(dataFolder);
+
+// --- Step 3: Ensure the URLs file exists ---
+if (!fs.existsSync(urlsFilePath)) {
+  // Default URLs — replace with real ones if needed
+  fs.writeFileSync(urlsFilePath, 'https://example.com/menu1\nhttps://example.com/menu2');
+  console.log('Created default dining_urls.txt');
+}
+
+// --- Step 4: Read URLs from the file ---
+const urls = fs.readFileSync(urlsFilePath, 'utf-8')
+               .split('\n')
+               .filter(line => line.trim() !== '');
+
+console.log(`Loaded ${urls.length} URLs:`)
+urls.forEach((url, index) => console.log(`${index + 1}: ${url}`));
+
+// --- Step 5: Puppeteer scraping function ---
 (async () => {
-  const browser = await puppeteer.launch({
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    headless: 'new'
-  });
-
+  console.log('Launching Puppeteer...');
+  const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
-  let restaurants = [];
 
-  for (const url of urls) {
+  for (let url of urls) {
     try {
-      console.log('Scraping:', url);
+      console.log(`Visiting: ${url}`);
+      await page.goto(url, { waitUntil: 'networkidle2' });
 
-      await page.goto(url, {
-        waitUntil: 'networkidle2',
-        timeout: 60000
-      });
-
-      // Extra wait to ensure JS renders fully
-      await new Promise(resolve => setTimeout(resolve, 5000));
-
-      const restaurant = await page.evaluate((url) => {
-
-        const textContent = document.body.innerText;
-        const lines = textContent.split('\n').map(l => l.trim()).filter(Boolean);
-
-        const items = [];
-
-        lines.forEach(line => {
-          if (line.includes('$')) {
-            const priceMatch = line.match(/\$[0-9]+(\.[0-9]{2})?/);
-            if (priceMatch) {
-              items.push({
-                name: line.replace(priceMatch[0], '').trim(),
-                description: '',
-                price: parseFloat(priceMatch[0].replace('$',''))
-              });
-            }
-          }
-        });
-
-        const nameMatch = url.match(/dining\/([^\/]+)/);
-        const name = nameMatch ? nameMatch[1].replace(/-/g,' ') : 'Unknown';
-
-        let park = "Unknown";
-        if (url.includes("universal")) park = "Universal Studios Florida";
-        if (url.includes("islands")) park = "Islands of Adventure";
-        if (url.includes("epic")) park = "Epic Universe";
-
-        return {
-          name,
-          park,
-          sections: [
-            {
-              name: "Menu",
-              items
-            }
-          ]
-        };
-      }, url);
-
-      if (restaurant.sections[0].items.length > 0) {
-        restaurants.push(restaurant);
-      }
-
+      // Example: grab the page title
+      const title = await page.title();
+      console.log(`Page title: ${title}`);
     } catch (err) {
-      console.log('Failed:', url);
+      console.error(`Failed to visit ${url}: ${err.message}`);
     }
   }
 
   await browser.close();
-
-  await fs.writeJson('data/menus.json', restaurants, { spaces: 2 });
-  console.log('Menus updated.');
+  console.log('Scraping finished.');
 })();
