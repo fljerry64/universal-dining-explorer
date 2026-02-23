@@ -17,39 +17,32 @@ const urls = fs.readFileSync('dining_urls.txt', 'utf-8')
   for (const url of urls) {
     try {
       console.log('Scraping:', url);
-      await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+
+      await page.goto(url, {
+        waitUntil: 'networkidle2',
+        timeout: 60000
+      });
+
+      // Extra wait to ensure JS renders fully
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
       const restaurant = await page.evaluate((url) => {
-        const sections = [];
-        const headings = document.querySelectorAll('h2, h3');
 
-        headings.forEach(heading => {
-          const sectionName = heading.innerText.trim();
-          const items = [];
+        const textContent = document.body.innerText;
+        const lines = textContent.split('\n').map(l => l.trim()).filter(Boolean);
 
-          let sibling = heading.nextElementSibling;
-          while (sibling && sibling.tagName !== 'H2' && sibling.tagName !== 'H3') {
-            const text = sibling.innerText || '';
-            if (text.includes('$')) {
-              const lines = text.split('\n');
-              lines.forEach(line => {
-                if (line.includes('$')) {
-                  const priceMatch = line.match(/\$[0-9]+(\.[0-9]{2})?/);
-                  if (priceMatch) {
-                    items.push({
-                      name: line.replace(priceMatch[0], '').trim(),
-                      description: '',
-                      price: parseFloat(priceMatch[0].replace('$',''))
-                    });
-                  }
-                }
+        const items = [];
+
+        lines.forEach(line => {
+          if (line.includes('$')) {
+            const priceMatch = line.match(/\$[0-9]+(\.[0-9]{2})?/);
+            if (priceMatch) {
+              items.push({
+                name: line.replace(priceMatch[0], '').trim(),
+                description: '',
+                price: parseFloat(priceMatch[0].replace('$',''))
               });
             }
-            sibling = sibling.nextElementSibling;
-          }
-
-          if (items.length > 0) {
-            sections.push({ name: sectionName, items });
           }
         });
 
@@ -61,10 +54,21 @@ const urls = fs.readFileSync('dining_urls.txt', 'utf-8')
         if (url.includes("islands")) park = "Islands of Adventure";
         if (url.includes("epic")) park = "Epic Universe";
 
-        return { name, park, sections };
+        return {
+          name,
+          park,
+          sections: [
+            {
+              name: "Menu",
+              items
+            }
+          ]
+        };
       }, url);
 
-      restaurants.push(restaurant);
+      if (restaurant.sections[0].items.length > 0) {
+        restaurants.push(restaurant);
+      }
 
     } catch (err) {
       console.log('Failed:', url);
