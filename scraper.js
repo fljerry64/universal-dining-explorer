@@ -2,15 +2,18 @@ const fs = require('fs');
 const puppeteer = require('puppeteer');
 
 const urlsFile = 'dining_urls.txt';
-const outputFile = 'menu_data.json';
+const outputFile = 'data/menus.json';
 
-// Step 1: Create default URLs file if it doesn't exist
+// Ensure data folder exists
+if (!fs.existsSync('data')) fs.mkdirSync('data');
+
+// Create default URLs file if missing
 if (!fs.existsSync(urlsFile)) {
   console.log('Created default dining_urls.txt');
   fs.writeFileSync(urlsFile, 'https://example.com/menu1\nhttps://example.com/menu2\n');
 }
 
-// Step 2: Read URLs from the file
+// Read URLs
 const urls = fs.readFileSync(urlsFile, 'utf-8')
   .split('\n')
   .map(line => line.trim())
@@ -30,10 +33,10 @@ const urls = fs.readFileSync(urlsFile, 'utf-8')
       console.log(`Visiting ${url} ...`);
       await page.goto(url, { waitUntil: 'networkidle2' });
 
-      // Example scraping logic
+      // Scrape menu items
       const menuItems = await page.evaluate(() => {
         const items = [];
-        // Update these selectors to match your menu page
+        // Adjust selectors to match your menu pages
         document.querySelectorAll('.menu-item').forEach(el => {
           const name = el.querySelector('.item-name')?.innerText || '';
           const price = el.querySelector('.item-price')?.innerText || '';
@@ -42,8 +45,11 @@ const urls = fs.readFileSync(urlsFile, 'utf-8')
         return items;
       });
 
-      allMenus.push({ url, menu: menuItems });
-      console.log(`Scraped ${menuItems.length} items from ${url}`);
+      // Generate friendly restaurant name from URL
+      const name = url.split('/dining/')[1]?.split('/')[0]?.replace(/-/g, ' ') || url;
+
+      allMenus.push({ name, menu: menuItems });
+      console.log(`Scraped ${menuItems.length} items from ${name}`);
 
     } catch (err) {
       console.error(`Error scraping ${url}:`, err);
