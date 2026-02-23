@@ -1,30 +1,54 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Universal Orlando Dining Explorer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8">
+  <title>Universal Orlando Menus</title>
+  <style>
+    body { font-family: Arial; padding: 1rem; background: #f4f4f4; }
+    h1 { text-align: center; }
+    .restaurant { background: #fff; padding: 1rem; margin: 1rem 0; border-radius: 8px; }
+    .item { margin-left: 1rem; }
+  </style>
 </head>
 <body>
+  <h1>Universal Orlando Menus</h1>
+  <input type="text" id="search" placeholder="Search..." style="width: 100%; padding: 0.5rem; margin-bottom: 1rem;">
+  <div id="menus"></div>
 
-<header>
-  <h1>Universal Orlando Dining Explorer</h1>
-  <button id="darkToggle">🌙</button>
-</header>
+  <script>
+    let allData = [];
 
-<div class="filters">
-  <input type="text" id="search" placeholder="Search food or restaurant...">
+    function renderMenus(filter='') {
+      const container = document.getElementById('menus');
+      container.innerHTML = '';
+      allData.forEach(rest => {
+        const restaurantName = rest.url; // replace with friendly names if you have them
+        const matchesFilter = restaurantName.toLowerCase().includes(filter) || rest.menu.some(i => i.item.toLowerCase().includes(filter));
+        if (!matchesFilter) return;
 
-  <select id="parkFilter">
-    <option value="">All Parks</option>
-    <option value="Universal Studios Florida">Universal Studios Florida</option>
-    <option value="Islands of Adventure">Islands of Adventure</option>
-    <option value="Epic Universe">Epic Universe</option>
-  </select>
-</div>
+        const div = document.createElement('div');
+        div.className = 'restaurant';
+        div.innerHTML = `<h2>${restaurantName}</h2>`;
+        rest.menu.forEach(item => {
+          const p = document.createElement('p');
+          p.className = 'item';
+          p.innerText = `${item.item} — ${item.price}`;
+          div.appendChild(p);
+        });
+        container.appendChild(div);
+      });
+    }
 
-<div id="restaurantList"></div>
+    fetch('menu_data.json')
+      .then(res => res.json())
+      .then(data => {
+        allData = data;
+        renderMenus();
+      });
 
-<script src="script.js"></script>
+    document.getElementById('search').addEventListener('input', (e) => {
+      renderMenus(e.target.value.toLowerCase());
+    });
+  </script>
 </body>
 </html>
