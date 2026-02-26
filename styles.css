@@ -1,7 +1,0 @@
-body { font-family: Arial; margin:0; }
-header { display:flex; justify-content:space-between; padding:15px; background:#0d3b66; color:white;}
-.filters { padding:10px; display:flex; gap:10px; flex-wrap:wrap; }
-.restaurant { border:1px solid #ddd; margin:15px; padding:15px; border-radius:10px; }
-.menu { display:none; margin-top:10px; }
-.menu-item { display:flex; justify-content:space-between; padding:4px 0; }
-.section { margin-top:10px; font-weight:bold; }
